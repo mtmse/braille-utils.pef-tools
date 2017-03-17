@@ -21,6 +21,34 @@ public class SearchIndexTest {
 	}
 
 	@Test
+	public void testReverse_01() {
+		SearchIndex<String> si = new SearchIndex<String>();
+		String obj1 = "1";
+		String obj2 = "2";
+		si.add("house", obj1);
+		si.add("boat", obj1);
+		si.add("house", obj2);
+		si.add("food", obj2);
+		si.remove(obj1);
+		si.add("coffee", obj1);
+		si.add("house", obj1);
+		si.remove(obj2);
+		si.add("house", obj2);
+		si.add("boat", obj2);
+		assertEquals(1, si.containsAll("house boat").size());
+		assertEquals(obj2, si.containsAll("house boat").iterator().next());
+		assertEquals(0, si.containsAll("food").size());
+		assertEquals(2, si.containsAll("house").size());
+	}
+
+	@Test
+	public void testRemoveEmpty() {
+		SearchIndex<String> si = new SearchIndex<String>();
+		si.remove("1");
+	}
+
+
+	@Test
 	public void testSubstringSearch() {
 		SearchIndex<String> si = new SearchIndex<>();
 		String obj1 = "1";

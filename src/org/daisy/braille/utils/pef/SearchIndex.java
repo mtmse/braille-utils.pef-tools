@@ -2,6 +2,8 @@ package org.daisy.braille.utils.pef;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -18,8 +20,9 @@ import java.util.Set;
 public class SearchIndex<E> {
 	private static final boolean debug = false;
 	private final Map<String, Set<E>> index;
+	private final Map<E, Set<String>> reverseIndex;
 	private static final String REGEX = "[\\s\\.,:/-]";
-	private final int exclude;
+	private final int subwordLimit;
 
 	/**
 	 * Creates a new search index with the default sub-word limit (3).
@@ -38,10 +41,11 @@ public class SearchIndex<E> {
 	 */
 	public SearchIndex(int subwordLimit) {
 		index = new Hashtable<>();
+		this.reverseIndex = Collections.synchronizedMap(new HashMap<E, Set<String>>());
 		if (subwordLimit<1) {
 			throw new IllegalArgumentException("Value must be 1 or greater.");
 		}
-		this.exclude = subwordLimit;
+		this.subwordLimit = subwordLimit;
 	}
 
 	/**
@@ -66,15 +70,36 @@ public class SearchIndex<E> {
 	public void add(String val, E obj, boolean strict) {
 		for (String ind : val.toLowerCase().split(REGEX)) {
 			if (ind!=null && ind.length()>0) {
-				if (strict || ind.length()<=exclude) {
+				if (strict || ind.length()<=subwordLimit) {
 					addToIndex(ind, obj);
 				} else {
-					for (int i=exclude; i<=ind.length(); i++) {
+					for (int i=subwordLimit; i<=ind.length(); i++) {
 						String indx = ind.substring(0, i);
 						addToIndex(indx, obj);
 					}
 				}
 			}
+		}
+	}
+
+	/**
+	 * Removes an entry from the index.
+	 * @param obj the object to remove
+	 */
+	public void remove(E obj) {
+		Set<String> setId = reverseIndex.get(obj);
+		if (setId!=null) {
+			for (String indx : setId) {
+				// remove object from the set
+				Set<E> set = index.get(indx);
+				set.remove(obj);
+				if (set.isEmpty()) {
+					// if the set is now empty, remove the set from the index 
+					index.remove(indx);
+				}
+			}
+			// remove the object from the reverse set
+			reverseIndex.remove(obj);
 		}
 	}
 
@@ -86,6 +111,13 @@ public class SearchIndex<E> {
 			index.put(indx, c);
 		}
 		c.add(obj);
+		// add to reverse index
+		Set<String> r = reverseIndex.get(obj);
+		if (r==null) {
+			r = new HashSet<>();
+			reverseIndex.put(obj, r);
+		}
+		r.add(indx);
 	}
 
 	/**

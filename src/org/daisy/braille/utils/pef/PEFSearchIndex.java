@@ -32,6 +32,7 @@ public class PEFSearchIndex extends SearchIndex<PEFBook> {
 	 * @param p the book to add
 	 */
 	public void add(PEFBook p) {
+		remove(p);
 		for (String key : p.getMetadataKeys()) {
 			for (String val : p.getMetadata(key)) {
 				if ("format".equals(key)) {
