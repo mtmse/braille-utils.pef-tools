@@ -36,6 +36,7 @@ dependencies {
 	runtime (group: 'org.daisy.libs', name: 'saxon-he', version: '9.5.1.5') {
 		exclude module: 'Saxon-HE'
 	}
+	testRuntime ('org.daisy.braille:braille-utils.impl:4.0.0-beta1')
 	
 }
 

@@ -54,6 +54,9 @@ public class TextConverterFacade {
 	 */
 	public static final String KEY_DATE = "date";
 
+	static final String KEY_ROWS_LIMIT = "rows-limit";
+	static final String KEY_COLS_LIMIT = "cols-limit";
+
 	private final TableCatalogService factory;
 
 	/**
@@ -76,27 +79,40 @@ public class TextConverterFacade {
 		TextHandler.Builder builder = new TextHandler.Builder(input, output, factory);
 		for (String key : settings.keySet()) {
 			String value = settings.get(key);
-			if (KEY_TITLE.equals(key)) {
+			switch (key) {
+			case KEY_TITLE:
 				builder.title(value);
-			} else if (KEY_AUTHOR.equals(key)) {
+				break;
+			case KEY_AUTHOR:
 				builder.author(value);
-			} else if (KEY_IDENTIFIER.equals(key)) {
+				break;
+			case KEY_IDENTIFIER:
 				builder.identifier(value);
-			} else if (KEY_MODE.equals(key)) {
+				break;
+			case KEY_MODE:
 				builder.converterId(value);
-			} else if (KEY_LANGUAGE.equals(key)) {
+				break;
+			case KEY_LANGUAGE:
 				builder.language(value);
-			} else if (KEY_DUPLEX.equals(key)) {
-				builder.duplex("true".equals(value.toLowerCase()));
-			}else if (KEY_DATE.equals(key)) {
+				break;
+			case KEY_DUPLEX:
+				builder.duplex("true".equalsIgnoreCase(value));
+				break;
+			case KEY_DATE:
 				try {
 					builder.date(DATE_FORMAT.parse(value));
-				} catch (ParseException e) {
-					throw new IllegalArgumentException(e);
-				}
-			} else {
+				} catch (ParseException e) { throw new IllegalArgumentException(e); }
+				break;
+			case KEY_ROWS_LIMIT:
+				builder.rowsLimit(Integer.parseInt(value));
+				break;
+			case KEY_COLS_LIMIT:
+				builder.colsLimit(Integer.parseInt(value));
+				break;
+			default:
 				throw new IllegalArgumentException("Unknown option \"" + key + "\"");
 			}
+
 		}
 		TextHandler tp = builder.build();
 		tp.parse();

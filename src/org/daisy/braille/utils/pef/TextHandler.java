@@ -24,6 +24,7 @@ import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -41,6 +42,8 @@ public class TextHandler {
 	 * Defines a date format (yyyy-MM-dd).
 	 */
 	public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+	private static final String TOO_MANY_ROWS = "Too many lines on the page ending at line {0}. There are {1} lines on this page (the limit is {2}).";
+	private static final String TOO_MANY_COLS = "Too many characters on line {0}. There are {1} characters on this line (the limit is {2}).";
 
 	private final File input;
 	private final File output;
@@ -51,6 +54,8 @@ public class TextHandler {
 	private final String identifier;
 	private final BrailleConverter converter;
 	private final boolean duplex;
+	private final int rowsLimit;
+	private final int colsLimit;
 	private Date date;
 
 	private int maxRows;
@@ -77,6 +82,8 @@ public class TextHandler {
 		private String converterId = null;
 		private boolean duplex = true;
 		private Date date = new Date();
+		private int rowsLimit = -1;
+		private int colsLimit = -1;
 
 		/**
 		 * Create a new TextParser builder
@@ -161,6 +168,26 @@ public class TextHandler {
 			date = value; return this;
 		}
 		/**
+		 * Sets the rows limit. This value is used to verify that the input doesn't contain rows
+		 * longer than <code>value</code>.
+		 * @param value the value
+		 * @return returns this object
+		 */
+		public Builder rowsLimit(int value) {
+			this.rowsLimit = value;
+			return this;
+		}
+		/**
+		 * Sets the cols limit. This value is used to verify that the input doesn't contain lines
+		 * longer than <code>value</code>.
+		 * @param value the value
+		 * @return returns this object
+		 */
+		public Builder colsLimit(int value) {
+			this.colsLimit = value;
+			return this;
+		}
+		/**
 		 * Builds a TextParser using the settings of this Builder
 		 * @return returns a new TextParser
 		 * @throws IOException if an error occurs
@@ -208,6 +235,8 @@ public class TextHandler {
 		}
 		duplex = builder.duplex;
 		date = builder.date;
+		rowsLimit = builder.rowsLimit;
+		colsLimit = builder.colsLimit;
 	}
 
 	/**
@@ -284,7 +313,12 @@ public class TextHandler {
 				if (pw!=null) { pw.println("				</page>"); }
 				pageClosed=true;
 				cRows--; // don't count this row
-				if (cRows>maxRows) { maxRows=cRows;	}
+				if (cRows>maxRows) {
+					maxRows=cRows;
+					if (rowsLimit>-1 && maxRows>rowsLimit) {
+						throw new RuntimeException(MessageFormat.format(TOO_MANY_ROWS, lr.getLineNumber(), maxRows, rowsLimit));
+					}
+				}
 				cRows=0;
 			} else {
 				String[] pieces = line.split("\\f", -1); //split on form feed
@@ -294,7 +328,12 @@ public class TextHandler {
 						if (pw!=null) {	pw.println("				</page>");	}
 						pageClosed=true;
 						cRows--; // don't count this row
-						if (cRows>maxRows) { maxRows=cRows;	}
+						if (cRows>maxRows) {
+							maxRows=cRows;
+							if (rowsLimit>-1 && maxRows>rowsLimit) {
+								throw new RuntimeException(MessageFormat.format(TOO_MANY_ROWS, lr.getLineNumber(), maxRows, rowsLimit));
+							}
+						}
 						cRows=0;
 					}
 					if (pageClosed) {
@@ -303,6 +342,9 @@ public class TextHandler {
 					}
 					if (p.length()>maxCols) {
 						maxCols=p.length();
+						if (colsLimit>-1 && maxCols>colsLimit) {
+							throw new RuntimeException(MessageFormat.format(TOO_MANY_COLS, lr.getLineNumber(), maxCols, colsLimit));
+						}
 					}
 					// don't output if row contains form feeds and this segment equals ""
 					if (!(pieces.length>1 && (i==pieces.length || i==1) && "".equals(p))) {
@@ -328,7 +370,12 @@ public class TextHandler {
 			if (pw!=null) { pw.println("				</page>"); }
 			pageClosed=true;	
 			cRows--; // don't count this row
-			if (cRows>maxRows) { maxRows=cRows;	}
+			if (cRows>maxRows) {
+				maxRows=cRows;
+				if (rowsLimit>-1 && maxRows>rowsLimit) {
+					throw new RuntimeException(MessageFormat.format(TOO_MANY_ROWS, lr.getLineNumber(), maxRows, rowsLimit));
+				}
+			}
 			cRows=0;
 		}
 	}
